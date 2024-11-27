@@ -91,11 +91,6 @@ $filter335 = @{
   Id = '335' # Automatic device join pre-check tasks completed. The device is already joined.
 }
 
-$filter20225 = @{
-  LogName = 'Application'
-  Id = '20225' # A dialled connection to RRAS has sucesfully connected.
-}
-
 # Wait for up to 60 minutes, re-checking once a minute...
 While (($counter++ -lt 60) -and (!$exitWhile)) {
     # Let's get some events...
@@ -103,13 +98,12 @@ While (($counter++ -lt 60) -and (!$exitWhile)) {
     $events306   = Get-WinEvent -FilterHashtable $filter306   -MaxEvents 1 -EA SilentlyContinue
     $events334   = Get-WinEvent -FilterHashtable $filter334   -MaxEvents 1 -EA SilentlyContinue
     $events335   = Get-WinEvent -FilterHashtable $filter335   -MaxEvents 1 -EA SilentlyContinue
-    $events20225 = Get-WinEvent -FilterHashtable $filter20225 -MaxEvents 1 -EA SilentlyContinue
 
     If ($events335) { $exitWhile = "True" }
 
     ElseIf ($events306) { $exitWhile = "True" }
 
-    ElseIf ($events20225 -And $events334 -And !$events304) {
+    ElseIf ((Test-DomainConnectivity) -And $events334 -And !$events304) {
         Write-Host "RRAS dialled sucesfully. Trying Automatic-Device-Join task to create userCertificate..."
         Start-ScheduledTask "\Microsoft\Windows\Workplace Join\Automatic-Device-Join"
         Write-Host "Sleeping for 60s..."
