@@ -1,8 +1,10 @@
 # WaitForUserDeviceRegistration.ps1
 #
-# Version 1.6
+# Version 1.7
 #
 # Steve Prentice, 2020
+#
+# Contributor : Mathieu Ait Azzouzene Nov. 2024 (Test domain connectivity using DNS and port 389)
 #
 # Used to pause device ESP during Autopilot Hybrid Join to wait for
 # the device to sucesfully register into AzureAD before continuing.
@@ -14,6 +16,50 @@
 #
 # Exits with return code 3010 to indicate a soft reboot is needed,
 # which in theory it isn't, but it suited my purposes.
+
+function Test-DomainConnectivity {
+    Param (
+        [Parameter(Position = 0, Mandatory = $true)]
+        [string]$DomainName,
+        [Parameter(Position = 1, Mandatory = $false)]
+        [switch]$TestAllDCs
+    )
+
+    # Resolve domain controllers
+    $DCs = Resolve-DnsName -Type SRV "_ldap._tcp.dc._msdcs.$DomainName"
+
+    if ($DCs) {
+        $Connectivity = $false
+        foreach ($DC in $DCs) {
+            Write-Output "Testing connection to $($DC.Target)"
+            
+            # Test ping
+            $pingResult = Test-Connection -ComputerName $DC.Target -Count 4
+                        
+            # Test LDAP port connectivity
+            $netResult = Test-NetConnection -ComputerName $DC.Target -Port 389
+
+            if ($pingResult.StatusCode -eq 0 -and $netResult.TcpTestSucceeded) {
+                Write-Output "Connection to $($DC.Target) is successful."
+                $Connectivity = $true
+                #If not testing All DCs, return immediately $true
+                if (-not $TestAllDCs) {
+                    return $true
+                }
+
+            }
+            else {
+                Write-Output "Connection to $($DC.Target) failed."
+            }
+        }
+
+        return $Connectivity
+    }
+    else {
+        Write-Output "No domain controllers found for $DomainName."
+        return $false
+    }
+}
 
 # Create a tag file just so Intune knows this was installed
 If (-Not (Test-Path "$($env:ProgramData)\DeviceRegistration\WaitForUserDeviceRegistration"))
