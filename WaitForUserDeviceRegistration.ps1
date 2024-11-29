@@ -17,6 +17,8 @@
 # Exits with return code 3010 to indicate a soft reboot is needed,
 # which in theory it isn't, but it suited my purposes.
 
+$DomainName = 'Contoso.com'
+
 function Test-DomainConnectivity {
     Param (
         [Parameter(Position = 0, Mandatory = $true)]
@@ -103,7 +105,7 @@ While (($counter++ -lt 60) -and (!$exitWhile)) {
 
     ElseIf ($events306) { $exitWhile = "True" }
 
-    ElseIf ((Test-DomainConnectivity) -And $events334 -And !$events304) {
+    ElseIf ((Test-DomainConnectivity -DomainName $DomainName) -And $events334 -And !$events304) {
         Write-Host "RRAS dialled sucesfully. Trying Automatic-Device-Join task to create userCertificate..."
         Start-ScheduledTask "\Microsoft\Windows\Workplace Join\Automatic-Device-Join"
         Write-Host "Sleeping for 60s..."
